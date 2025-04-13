@@ -12,3 +12,13 @@ A RESTful API for scraping and allowing downloads of manhwa chapters from public
 - Easily integrable with frontend applications
 
 ---
+
+## Tech Stack
+
+- Node.js
+- Express.js
+- Puppeteer for web scraping and browser automation
+- Sharp for image processing
+- PDFlib for PDF creation and manipulation
+
+---

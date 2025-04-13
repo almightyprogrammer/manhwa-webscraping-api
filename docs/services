@@ -1,0 +1,13 @@
+#panelService.js
+---
+##Overview
+The PanelService class is responsible for scraping, processing, and merging manhwa penls from webpages. It uses Puppeteer for web scraiping, Sharp for image processing, and Axios for HTTP requests.
+
+###constructor()
+Instantiates the service with the configuration settings from the config.js file. Sets up a temporary directory path for storing images
+
+###ensureTempDir()
+Purpose: just ensures that the temp directory exists, and creates a new one if it does not exist.
+
+###downloadImage(url, filename)
+- Purpose: 

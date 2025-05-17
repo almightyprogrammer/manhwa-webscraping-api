@@ -14,7 +14,7 @@ class ScraperService {
         const browser = await puppeteer.launch(this.config.puppeteer.options);
         const page = await browser.newPage();
         await page.setDefaultNavigationTimeout(this.config.puppeteer.navigationTimeout);
-        
+
         await page.setRequestInterception(true);
         page.on('request', (request) => {
             const resourceType = request.resourceType();
@@ -29,33 +29,22 @@ class ScraperService {
     }
 
     async loadAllContent(page) {
-        let clickCount = 0;
-        console.log('🔄 Starting to click Load More button...');
-
         while (true) {
             try {
                 const button = await page.waitForSelector(this.config.selectors.loadMoreButton, {
                     timeout: this.config.puppeteer.buttonTimeout
                 }).catch(() => null);
 
-                if (!button) {
-                    console.log('✅ No more items to load.');
-                    break;
-                }
+                if (!button) break;
 
-                console.log(`🖱️ Clicking Load More (${++clickCount})...`);
                 await button.click();
-
                 await page.waitForNetworkIdle({ 
                     timeout: this.config.puppeteer.networkIdleTimeout 
                 }).catch(() => {});
-            } catch (error) {
-                console.error('Error:', error.message);
+            } catch {
                 break;
             }
         }
-
-        return clickCount;
     }
 
     async extractNovels(page) {
@@ -75,7 +64,7 @@ class ScraperService {
                     title: h1 ? h1.textContent.trim() : anchor.title || anchor.textContent.trim(),
                     chapters: chapters
                 };
-            }).filter(comic => comic.title && comic.href); // Filter out any invalid entries
+            }).filter(comic => comic.title && comic.href);
         }, this.config.selectors);
     }
 
@@ -88,15 +77,11 @@ class ScraperService {
                 timeout: this.config.puppeteer.navigationTimeout
             });
 
-            const clickCount = await this.loadAllContent(page);
+            await this.loadAllContent(page);
             const novels = await this.extractNovels(page);
-
-            console.log(`\n📊 Total number of clicks: ${clickCount}`);
-            console.log(`📚 Found ${novels.length} novels`);
 
             return novels;
         } catch (error) {
-            console.error('Scraping error:', error);
             throw error;
         } finally {
             await browser.close();
@@ -104,4 +89,4 @@ class ScraperService {
     }
 }
 
-module.exports = new ScraperService(); 
+module.exports = new ScraperService();

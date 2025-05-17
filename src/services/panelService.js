@@ -20,10 +20,7 @@ class PanelService {
     }
 
     async downloadImage(url, filename) {
-        const response = await axios({
-            url,
-            responseType: 'arraybuffer'
-        });
+        const response = await axios({ url, responseType: 'arraybuffer' });
         const imagePath = path.join(this.tempDir, filename);
         await fs.writeFile(imagePath, response.data);
         return imagePath;
@@ -38,38 +35,33 @@ class PanelService {
 
     async mergePanels(panelPaths) {
         const outputPath = path.join(this.tempDir, 'merged.png');
-        
-        // Get dimensions of first panel
         const firstPanel = await sharp(panelPaths[0]).metadata();
         const width = firstPanel.width;
-        
-        // Calculate total height
+
         let totalHeight = 0;
         const panelHeights = [];
-        
+
         for (const panelPath of panelPaths) {
             const metadata = await sharp(panelPath).metadata();
             panelHeights.push(metadata.height);
             totalHeight += metadata.height;
         }
-        
-        // Create a new image with the total height
+
         const composite = sharp({
             create: {
-                width: width,
+                width,
                 height: totalHeight,
                 channels: 4,
                 background: { r: 255, g: 255, b: 255, alpha: 1 }
             }
         });
-        
-        // Composite all panels vertically
+
         const composites = panelPaths.map((panelPath, index) => ({
             input: panelPath,
             top: panelHeights.slice(0, index).reduce((a, b) => a + b, 0),
             left: 0
         }));
-        
+
         await composite.composite(composites).toFile(outputPath);
         return outputPath;
     }
@@ -80,43 +72,28 @@ class PanelService {
                 await fs.unlink(panelPath);
             }
             await fs.unlink(mergedPath);
-        } catch (error) {
-            console.error('Cleanup error:', error);
-        }
+        } catch {}
     }
 
     async scrapeAndMergePanels(url) {
         await this.ensureTempDir();
         const browser = await puppeteer.launch(this.config.puppeteer.options);
         const page = await browser.newPage();
-        
+
         try {
-            // Navigate to the chapter page
-            await page.goto(url, { 
-                waitUntil: 'networkidle0',
-                timeout: 30000
-            });
-
-            // Get panel URLs
+            await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
             const panelUrls = await this.getPanelUrls(page);
-            if (!panelUrls.length) {
-                throw new Error('No panels found on the page');
-            }
+            if (!panelUrls.length) throw new Error('No panels found on the page');
 
-            // Download panels
             const panelPaths = [];
             for (let i = 0; i < panelUrls.length; i++) {
                 const panelPath = await this.downloadImage(panelUrls[i], `panel-${i}.png`);
                 panelPaths.push(panelPath);
             }
 
-            // Merge panels
             const mergedPath = await this.mergePanels(panelPaths);
-
-            // Read the merged file
             const mergedImage = await fs.readFile(mergedPath);
 
-            // Cleanup
             await this.cleanup(panelPaths, mergedPath);
             await browser.close();
 
@@ -128,4 +105,4 @@ class PanelService {
     }
 }
 
-module.exports = new PanelService(); 
+module.exports = new PanelService();
